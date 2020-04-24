@@ -10,8 +10,9 @@
       <!-- Вывод сообщений об отправке -->
       <?php
       if ($messages['save'] != '') {
-        print '<div class="notification has-text-primary">'.$messages["save"].'</div>';
-      } else if ($messages['notsave'] != '') {
+        print '<div class="notification has-text-primary">'.$messages["save"].$messages['savelogin'].'</div>';
+      }
+       if ($messages['notsave'] != '') {
         print '<div class="notification has-text-danger">'.$messages["notsave"].'</div>';
       }
       ?>

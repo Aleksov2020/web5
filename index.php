@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
     $messages['save'] = 'Спасибо, результаты сохранены.';
     // Если в куках есть пароль, то выводим сообщение.
     if (!empty($_COOKIE['pass'])) {
-      $messages[] = sprintf('Вы можете <a href="login.php">войти</a> с логином <strong>%s</strong>
+      $messages['savelogin'] = sprintf(' Вы можете <a href="login.php">войти</a> с логином <strong>%s</strong>
         и паролем <strong>%s</strong> для изменения данных.',
         strip_tags($_COOKIE['login']),
         strip_tags($_COOKIE['pass']));
@@ -115,14 +115,44 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
       }
   }
 
+
+
   // Если нет предыдущих ошибок ввода, есть кука сессии, начали сессию и
   // ранее в сессию записан факт успешного логина.
-  if (empty($errors) && !empty($_COOKIE[session_name()]) &&
-      session_start() && !empty($_SESSION['login'])) {
-    // TODO: загрузить данные пользователя из БД
-    // и заполнить переменную $values,
-    // предварительно санитизовав.
-    printf('Вход с логином %s, uid %d', $_SESSION['login'], $_SESSION['uid']);
+  if (!empty($_COOKIE[session_name()]) && session_start() && !empty($_SESSION['login'])) {
+    $messages['save'] = ' ';
+    $messages['savelogin'] = 'Вход с логином '.$_SESSION['login'];
+
+    $db = new PDO('mysql:host=localhost;dbname=u16671', $db_user, $db_pass, array(
+      PDO::ATTR_PERSISTENT => true
+    ));
+
+    try {
+      $stmt = $db->prepare("SELECT * FROM form5 WHERE uid = ?");
+      $stmt->execute(array(
+        $_SESSION['login']
+      ));
+      $user_data = $stmt->fetch();
+
+      $values['name'] = strip_tags($user_data['name']);
+      $values['email'] = strip_tags($user_data['email']);
+      $values['year'] = strip_tags($user_data['age']);
+      $values['sex'] = strip_tags($user_data['sex']);
+      $values['limbs'] = strip_tags($user_data['limbs']);
+      $values['bio'] = strip_tags($user_data['bio']);
+      $powers_value = explode(", ", $user_data['powers']);
+      $values['powers'] = [];
+      foreach ($powers_value as $power) {
+        if (!empty($powers[$power])) {
+          $values['powers'][$power] = $power;
+        }
+      }
+    }
+    catch(PDOException $e) {
+      // При возникновении ошибки отправления в БД, выводим информацию
+      echo "Ошибка загрузки данных из БД.";
+      exit();
+    }
   }
 
   // Включаем содержимое файла form.php.
@@ -212,12 +242,33 @@ else {
       session_start() && !empty($_SESSION['login'])) {
     // TODO: перезаписать данные в БД новыми данными,
     // кроме логина и пароля.
+    $db = new PDO('mysql:host=localhost;dbname=u16671', $db_user, $db_pass, array(
+      PDO::ATTR_PERSISTENT => true
+    ));
+
+    try {
+      $stmt = $db->prepare("UPDATE form5 SET name = ?, email = ?, age = ?, sex = ?, limbs = ?, powers = ?, bio = ? WHERE uid = ?");
+      $stmt->execute(array(
+        $_POST['name'],
+        $_POST['email'],
+        $_POST['year'],
+        $_POST['sex'],
+        $_POST['limbs'],
+        implode(', ', $_POST['powers']),
+        $_POST['bio'],
+        $_SESSION['login']
+      ));
+    }
+    catch(PDOException $e) {
+      // При возникновении ошибки отправления в БД, выводим информацию
+      setcookie('notsave', 'Ошибка: ' . $e->getMessage());
+      exit();
+    }
   }
   else {
     // Генерируем уникальный логин и пароль.
-    // TODO: сделать механизм генерации, например функциями rand(), uniquid(), md5(), substr().
-    $login = '123';
-    $pass = '123';
+    $login = uniqid("id");
+    $pass = rand(123456, 999999);
     // Сохраняем в Cookies.
     setcookie('login', $login);
     setcookie('pass', $pass);
@@ -228,15 +279,21 @@ else {
     ));
 
     try {
-      $stmt = $db->prepare("INSERT INTO app SET name = ?, email = ?, age = ?, sex = ?, limbs = ?, powers = ?, bio = ?");
-      $stmt->execute(array(
+      $stmt_form = $db->prepare("INSERT INTO form5 SET uid = ?, name = ?, email = ?, age = ?, sex = ?, limbs = ?, powers = ?, bio = ?");
+      $stmt_form->execute(array(
+        $login,
         $_POST['name'],
         $_POST['email'],
         $_POST['year'],
         $_POST['sex'],
         $_POST['limbs'],
         implode(', ', $_POST['powers']),
-        $_POST['bio'],
+        $_POST['bio']
+      ));
+      $stmt_user = $db->prepare("INSERT INTO users SET login = ?, pass = ?");
+      $stmt_user->execute(array(
+        $login,
+        hash('sha256', $pass, false)
       ));
     }
     catch(PDOException $e) {
