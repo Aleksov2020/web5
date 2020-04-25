@@ -10,7 +10,7 @@
       <!-- Вывод сообщений об отправке -->
       <?php
       if ($messages['save'] != '') {
-        print '<div class="notification has-text-primary">'.$messages["save"].$messages['savelogin'].'</div>';
+        print '<div class="notification has-text-info">'.$messages["save"].$messages['savelogin'].'</div>';
       }
        if ($messages['notsave'] != '') {
         print '<div class="notification has-text-danger">'.$messages["notsave"].'</div>';
@@ -127,8 +127,10 @@
       </div>
       <!-- ./Checkbox -->
       <!-- Button -->
-      <div class="control">
-        <button id="btn" type="submit" class="button is-light is-info">Отправить</button>
+      <div class="field is-grouped">
+        <div class="control">
+          <button name="btn" type="submit" class="btn button is-info" value="ok">Отправить</button>
+        </div>
       </div>
       <!-- ./Button -->
     </form>

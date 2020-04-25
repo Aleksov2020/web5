@@ -10,11 +10,11 @@ html {
     height: 100%;
 }
 
-#btn {
+.btn {
     cursor: pointer;
 }
 
-#btn::after {
+.btn::after {
     border-color: transparent transparent #00d1b2 #00d1b2!important;
 }
 
